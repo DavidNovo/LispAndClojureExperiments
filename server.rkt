@@ -35,7 +35,7 @@
 ;; the page will be a String containning HTTP commands
 ;; String
 (define hello-world-page 
-  "HTTP/1.0 200 Okay\r\n Server:k\r\nContent-Type: text/html\r\n\r\n <html><head></head><body>Hello, world!</body></html>")
+  "HTTP/1.0 200 Okay\r\n Server:k\r\nContent-Type: text/html\r\n\r\n <html><head></head><body>Hello, world!  This is Racket Server. </body></html>")
 ;; Template rules used:
 ;;  - atomic non-distinct: String
 ;; template
@@ -65,12 +65,12 @@
 ;; port number, number of connection, allow for reuse
 ;; number, number, boolean -> TCP listener
 ;;(define listener (tcp-listen port-no number-of-tcp-connections #t ))
-;; when I moved this into the server function definition it worked, re-served pages a lot.  why?
+;; when I moved this into the server function definition it worked, re-served pages a lot.
+;; why?
 
 ;; examples
 ;;(check-expect (listener (tcp-listen port-no number-of-tcp-connections #t "127.0.0.1")) #<tcp-listener>)
 
-;; !!
 ;; accepts a TCP connection ->returns response
 ;;(define (accept-and-handle listener)
 ;;  ( listener))
