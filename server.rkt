@@ -19,10 +19,11 @@
 ;3. Template and inventory.
 ;4. Code the function body.
 ;5. Test and debug until correct
+;;
+;;
 
 ;; constants section
 (define port-no  8080) ;HTTP port of server
-(define input-stream "place holder for a stream" )
 (define number-of-tcp-connections 5)
 (define sample-http-request "GET /path/to/file/index.html HTTP/1.0 \r\n")
 
@@ -46,32 +47,22 @@
 ;; tests
 (check-expect (string? hello-world-page) true)
 (check-expect (number? port-no) true)
-(check-expect (= port-no 8080) true)
+;;(check-expect (= port-no 8080) true)
 
 ;; functions
 
 ;; first a method to serve pages, to accept a TCP connection
 ;; this is the top-level function
 (define (serve port-no)
-  (define listener (tcp-listen port-no number-of-tcp-connections #t ))
+  (define listener-tcp (tcp-listen port-no number-of-tcp-connections #t ))
     (define (loop)
-      (accept-and-handle listener)
+      (accept-and-handle listener-tcp)
       (loop))
     (loop))
     
 
-;; !!
-;; This is a listener for the serve function, listens for TCP connections
-;; port number, number of connection, allow for reuse
-;; number, number, boolean -> TCP listener
-;;(define listener (tcp-listen port-no number-of-tcp-connections #t ))
-;; when I moved this into the server function definition it worked, re-served pages a lot.
-;; why?
-
-;; examples
-;;(check-expect (listener (tcp-listen port-no number-of-tcp-connections #t "127.0.0.1")) #<tcp-listener>)
-
-;; accepts a TCP connection ->returns response
+;; accepts a TCP connection ->returns closes streams
+;; creates a tcp client connection on the server associated with listener
 ;;(define (accept-and-handle listener)
 ;;  ( listener))
 (define (accept-and-handle listener)
@@ -80,20 +71,24 @@
     (close-input-port input-stream)
     (close-output-port output-stream))
 ;; examples
-;; this should return a hello world page
-;;(check-expect (accept-and-handle listener) hello-world-page)
+;; this should return a hello world page 
+;;(check-expect (accept-and-handle 
+;;               (tcp-listen port-no number-of-tcp-connections #t )) null)
 
 
 ;; takes the tcp request and creates a reply
-;; input stream -> output stream
+;; input stream, output stream  -> output stream
 (define (handle-tcp input-stream output-stream)
   ; Discard the request header (up to blank line):
   (regexp-match #rx"(\r\n|^)\r\n" input-stream)
   ; Send reply:
   (display hello-world-page output-stream))
+;; examples and tests
+;; parameters for testing
+(check-expect (handle-tcp "null string" (current-output-port)) (display hello-world-page))
 
 
 
 ;; the following runs the tests.  should be commented out
 ;; for production
-;;(test)
+(test)
