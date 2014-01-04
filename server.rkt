@@ -75,13 +75,19 @@
 ;;  ( listener))
 (define (accept-and-handle listener)
   (define-values (input-stream output-stream)(tcp-accept listener))
-  (handle-tcp input-stream output-stream)
-  (close-input-port input-stream)
-  (close-output-port output-stream))
-;; examples
-;; this should return a hello world page 
-;;(check-expect (accept-and-handle 
-;;               (tcp-listen port-no number-of-tcp-connections #t )) null)
+  ;;putting each connecton into its own thread
+  (thread
+   (lambda ()
+     (handle-tcp input-stream output-stream)
+     (close-input-port input-stream)
+     (close-output-port output-stream))))
+;; example and tests
+;;this test does not return a value
+;; I have to stop the top repl...I wonder why?
+;(check-expect (procedure?(accept-and-handle 
+;                          (tcp-listen 8081 1 #t )))
+;               #t )
+
 
 
 ;; takes the tcp request and creates a reply
