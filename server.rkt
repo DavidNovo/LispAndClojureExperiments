@@ -1,5 +1,5 @@
 #lang racket
- 
+
 ;; required libraries
 (require test-engine/racket-tests)
 
@@ -49,17 +49,25 @@
 (check-expect (number? port-no) true)
 ;;(check-expect (= port-no 8080) true)
 
-;; functions
+;; functions 
 
 ;; first a method to serve pages, to accept a TCP connection
 ;; this is the top-level function
+;; to start the server use (define stop (serve port-no))
+
 (define (serve port-no)
   (define listener-tcp (tcp-listen port-no number-of-tcp-connections #t ))
-    (define (loop)
-      (accept-and-handle listener-tcp)
-      (loop))
+  (define (loop)
+    (accept-and-handle listener-tcp)
     (loop))
-    
+  ;; call the loop in new thread of control
+  (define t (thread loop))
+  (lambda ()
+    (kill-thread t)
+    (tcp-close listener-tcp)))
+;; example and tests
+(check-expect (procedure?(serve 8080)) #t )
+
 
 ;; accepts a TCP connection ->returns closes streams
 ;; creates a tcp client connection on the server associated with listener
@@ -67,9 +75,9 @@
 ;;  ( listener))
 (define (accept-and-handle listener)
   (define-values (input-stream output-stream)(tcp-accept listener))
-    (handle-tcp input-stream output-stream)
-    (close-input-port input-stream)
-    (close-output-port output-stream))
+  (handle-tcp input-stream output-stream)
+  (close-input-port input-stream)
+  (close-output-port output-stream))
 ;; examples
 ;; this should return a hello world page 
 ;;(check-expect (accept-and-handle 
