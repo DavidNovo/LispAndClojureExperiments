@@ -36,7 +36,7 @@
 ;; the page will be a String containning HTTP commands
 ;; String
 (define hello-world-page 
-  "HTTP/1.0 200 Okay\r\n Server:k\r\nContent-Type: text/html\r\n\r\n <html><head></head><body>Hello, world!  This is Racket Server. </body></html>")
+  "HTTP/1.0 200 Okay\r\n Server:k\r\nContent-Type: text/html\r\n\r\n <html><head></head><body>Hello, world!  This is Racket Server. Using custodians and threads</body></html>")
 ;; Template rules used:
 ;;  - atomic non-distinct: String
 ;; template
@@ -56,15 +56,19 @@
 ;; to start the server use (define stop (serve port-no))
 
 (define (serve port-no)
-  (define listener-tcp (tcp-listen port-no number-of-tcp-connections #t ))
-  (define (loop)
-    (accept-and-handle listener-tcp)
-    (loop))
-  ;; call the loop in new thread of control
-  (define t (thread loop))
-  (lambda ()
-    (kill-thread t)
-    (tcp-close listener-tcp)))
+  ;; define a custodian for the server thread
+  (define main-cust (make-custodian))
+  (parameterize ([current-custodian main-cust])
+    (define listener-tcp (tcp-listen port-no number-of-tcp-connections #t ))
+    (define (loop)
+      (accept-and-handle listener-tcp)
+      (loop))
+    ;; a new thread by default goes in the 
+    ;; current custodian
+    (thread loop))
+    (lambda ()
+      (custodian-shutdown-all main-cust)))
+
 ;; example and tests
 (check-expect (procedure?(serve 8080)) #t )
 
@@ -74,13 +78,19 @@
 ;;(define (accept-and-handle listener)
 ;;  ( listener))
 (define (accept-and-handle listener)
-  (define-values (input-stream output-stream)(tcp-accept listener))
-  ;;putting each connecton into its own thread
-  (thread
-   (lambda ()
-     (handle-tcp input-stream output-stream)
-     (close-input-port input-stream)
-     (close-output-port output-stream))))
+  (define cust (make-custodian))
+  (parameterize ([current-custodian cust])
+    (define-values (input-stream output-stream)(tcp-accept listener))
+    ;;putting each connecton into its own thread
+    (thread
+     (lambda ()
+       (handle-tcp input-stream output-stream)
+       (close-input-port input-stream)
+       (close-output-port output-stream))))
+  ;; watcher thread
+  (thread (lambda() 
+            (sleep 10)
+            (custodian-shutdown-all cust))))
 ;; example and tests
 ;;this test does not return a value
 ;; I have to stop the top repl...I wonder why?
