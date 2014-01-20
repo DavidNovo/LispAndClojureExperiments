@@ -2,6 +2,9 @@
 
 ;; required libraries
 (require test-engine/racket-tests)
+(require xml)
+(require net/url)
+
 
 
 
@@ -37,6 +40,21 @@
 ;; String
 (define hello-world-page 
   "HTTP/1.0 200 Okay\r\n Server:k\r\nContent-Type: text/html\r\n\r\n <html><head></head><body>Hello, world!  This is Racket Server. Using custodians and threads</body></html>")
+
+(define sample-get-request-bad 
+  "GET /path/file.html 
+HTTP/1.0
+  From: someuser@jmarshall.com
+  User-Agent: HTTPTool/1.0
+
+")
+
+(define sample-get-request
+  "GET /path/file.html HTTP/1.0
+From: someuser@jmarshall.com
+User-Agent: HTTPTool/1.0
+
+")
 ;; Template rules used:
 ;;  - atomic non-distinct: String
 ;; template
@@ -54,7 +72,6 @@
 ;; first a method to serve pages, to accept a TCP connection
 ;; this is the top-level function
 ;; to start the server use (define stop (serve port-no))
-
 (define (serve port-no)
   ;; define a custodian for the server thread
   (define main-cust (make-custodian))
@@ -66,8 +83,8 @@
     ;; a new thread by default goes in the 
     ;; current custodian
     (thread loop))
-    (lambda ()
-      (custodian-shutdown-all main-cust)))
+  (lambda ()
+    (custodian-shutdown-all main-cust)))
 
 ;; example and tests
 (check-expect (procedure?(serve 8080)) #t )
@@ -98,8 +115,6 @@
 ;                          (tcp-listen 8081 1 #t )))
 ;               #t )
 
-
-
 ;; takes the tcp request and creates a reply
 ;; input stream, output stream  -> output stream
 (define (handle-tcp input-stream output-stream)
@@ -110,6 +125,27 @@
 ;; examples and tests
 ;; parameters for testing
 (check-expect (handle-tcp "null string" (current-output-port)) (display hello-world-page))
+
+;; !!
+;; checking a request
+;; HTTP request -> Boolean
+;;(define request 
+;;  (regexp-match "pattern to determine if it is a request"
+;;                (read-line in)))  ;stub
+;; function body
+(define (request in)
+  (regexp-match #rx"^GET (.+) HTTP/[0-9]+\\.[0-9]+"
+                (read-line in)))
+;; tests
+(check-expect (request (open-input-string sample-get-request-bad))
+              #f)
+(check-expect (request (open-input-string sample-get-request))
+              '("GET /path/file.html HTTP/1.0" "/path/file.html"))
+
+;; !! a new wish
+;; URL -> string to create an html page
+;; this function takes a URL and returns a string
+;;(define dispatch URL null) ;stub
 
 
 
